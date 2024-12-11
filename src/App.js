@@ -195,41 +195,43 @@ const App = () => {
   const deleteItem = (path, name) => {
     const pathArray = path.split("/").filter(Boolean); // Split the path into parts
 
-    const deleteRecursive = (structure, pathArray, name) => {
-      if (pathArray.length === 0) {
-        // Base case: If pathArray is empty, we are at the item to delete
-        if (Array.isArray(structure)) {
-          // If it's an array (i.e., a file list), remove the file
-          return structure.filter((item) => item !== name);
-        } else if (typeof structure === "object") {
-          // If it's an object (i.e., a folder), delete the folder
+    const deleteRecursive = (structure, pathArray) => {
+      if (pathArray.length === 1) {
+        const currentKey = pathArray[0];
+
+        if (Array.isArray(structure[currentKey])) {
+          // Handle file deletion inside an array
+          return {
+            ...structure,
+            [currentKey]: structure[currentKey].filter((item) => item !== name),
+          };
+        }
+
+        if (structure[currentKey] !== undefined) {
+          // Handle folder deletion
           const updatedStructure = { ...structure };
-          delete updatedStructure[name]; // Delete the folder
+          delete updatedStructure[currentKey];
           return updatedStructure;
         }
-        return structure; // If no match, return unchanged structure
       }
 
-      const currentFolder = pathArray[0]; // Get the current folder in the path
+      const currentFolder = pathArray[0];
 
       if (structure[currentFolder]) {
-        // Recursively delete from deeper folders
         return {
           ...structure,
           [currentFolder]: deleteRecursive(
             structure[currentFolder],
-            pathArray.slice(1), // Move deeper into the structure
-            name
+            pathArray.slice(1)
           ),
         };
       }
 
-      return structure; // If no match found, return the unchanged structure
+      return structure; // Return unchanged structure if path is invalid
     };
 
-    // Update the state with the modified structure
     setFolderStructure((prevStructure) =>
-      deleteRecursive({ ...prevStructure }, pathArray, name)
+      deleteRecursive({ ...prevStructure }, pathArray)
     );
   };
 
