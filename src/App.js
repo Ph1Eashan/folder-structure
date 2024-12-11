@@ -145,21 +145,37 @@ const App = () => {
   const [folderStructure, setFolderStructure] = useState(initialData);
 
   const updateFolder = (path, newFolderName) => {
+    console.log(path, newFolderName);
     const pathArray = path.split("/").filter(Boolean);
 
     const addFolderRecursive = (structure, pathArray, newFolderName) => {
       if (pathArray.length === 0) {
         return {
           ...structure,
-          [newFolderName]: [], // Create new folder
+          [newFolderName]: [], // Add the new folder at the path
         };
       }
 
+      console.log("path array", pathArray[0]);
+
       const currentFolder = pathArray[0];
+      console.log("current folder", currentFolder);
+      console.log(structure[currentFolder]);
+      if (Array.isArray(structure[currentFolder])) {
+        console.log("is array");
+        structure[currentFolder] = structure[currentFolder].reduce(
+          (acc, key) => {
+            console.log(acc, key);
+            acc[key] = null;
+            return acc;
+          },
+          {}
+        );
+      }
       return {
         ...structure,
         [currentFolder]: addFolderRecursive(
-          structure[currentFolder],
+          structure[currentFolder] || {},
           pathArray.slice(1),
           newFolderName
         ),
@@ -177,14 +193,8 @@ const App = () => {
     const deleteRecursive = (structure, pathArray) => {
       if (pathArray.length === 1) {
         const keyToDelete = pathArray[0];
-        if (Array.isArray(structure[keyToDelete])) {
-          return {
-            ...structure,
-            [keyToDelete]: structure[keyToDelete].filter(
-              (file) => file !== name
-            ),
-          };
-        }
+
+        // Delete the entire folder or file at this level
         const updatedStructure = { ...structure };
         delete updatedStructure[keyToDelete];
         return updatedStructure;
@@ -214,15 +224,19 @@ const App = () => {
     const pathArray = path.split("/").filter(Boolean);
 
     const editRecursive = (structure, pathArray) => {
-      if (pathArray.length === 0) {
-        if (structure[oldName] !== undefined) {
-          // Rename folder
+      if (pathArray.length === 1) {
+        const currentFolder = pathArray[0];
+
+        // Handle renaming of folders
+        if (structure[currentFolder] !== undefined) {
           const updatedStructure = { ...structure };
-          updatedStructure[newName] = updatedStructure[oldName]; // Copy old folder content
-          delete updatedStructure[oldName]; // Delete old folder
+          updatedStructure[newName] = updatedStructure[currentFolder]; // Copy the content
+          delete updatedStructure[currentFolder]; // Delete the old folder
           return updatedStructure;
-        } else if (Array.isArray(structure)) {
-          // Rename file
+        }
+
+        // Handle renaming of files
+        if (Array.isArray(structure)) {
           return structure.map((file) => (file === oldName ? newName : file));
         }
       }
@@ -237,6 +251,7 @@ const App = () => {
           ),
         };
       }
+
       return structure;
     };
 
