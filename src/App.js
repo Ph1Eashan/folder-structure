@@ -106,8 +106,13 @@ const Folder = ({
                 >
                   📄 {file}
                   <button
-                    onClick={() =>
-                      editItem(path, file, prompt("Edit file name:", file))
+                    onClick={
+                      () =>
+                        editItem(
+                          path + "/" + file,
+                          file,
+                          prompt("Edit file name:", file)
+                        ) // Pass the full path here
                     }
                     style={{ marginLeft: "10px" }}
                   >
@@ -127,11 +132,11 @@ const Folder = ({
                   name={folderName}
                   content={folderContent}
                   depth={depth + 1}
-                  path={`${path}/${folderName}`}
+                  path={`${path}/${folderName}`} // Pass the full path to the folder
                   updateFolder={updateFolder}
                   deleteItem={deleteItem}
-                  editItem={editItem} // Ensure editItem is passed
-                  addFile={addFile} // Pass addFile for nested folders
+                  editItem={editItem}
+                  addFile={addFile}
                 />
               ))}
         </>
@@ -188,34 +193,43 @@ const App = () => {
   };
 
   const deleteItem = (path, name) => {
-    const pathArray = path.split("/").filter(Boolean);
+    const pathArray = path.split("/").filter(Boolean); // Split the path into parts
 
-    const deleteRecursive = (structure, pathArray) => {
-      if (pathArray.length === 1) {
-        const keyToDelete = pathArray[0];
-
-        // Delete the entire folder or file at this level
-        const updatedStructure = { ...structure };
-        delete updatedStructure[keyToDelete];
-        return updatedStructure;
+    const deleteRecursive = (structure, pathArray, name) => {
+      if (pathArray.length === 0) {
+        // Base case: If pathArray is empty, we are at the item to delete
+        if (Array.isArray(structure)) {
+          // If it's an array (i.e., a file list), remove the file
+          return structure.filter((item) => item !== name);
+        } else if (typeof structure === "object") {
+          // If it's an object (i.e., a folder), delete the folder
+          const updatedStructure = { ...structure };
+          delete updatedStructure[name]; // Delete the folder
+          return updatedStructure;
+        }
+        return structure; // If no match, return unchanged structure
       }
 
-      const currentFolder = pathArray[0];
+      const currentFolder = pathArray[0]; // Get the current folder in the path
+
       if (structure[currentFolder]) {
+        // Recursively delete from deeper folders
         return {
           ...structure,
           [currentFolder]: deleteRecursive(
             structure[currentFolder],
-            pathArray.slice(1)
+            pathArray.slice(1), // Move deeper into the structure
+            name
           ),
         };
       }
 
-      return structure;
+      return structure; // If no match found, return the unchanged structure
     };
 
+    // Update the state with the modified structure
     setFolderStructure((prevStructure) =>
-      deleteRecursive({ ...prevStructure }, pathArray)
+      deleteRecursive({ ...prevStructure }, pathArray, name)
     );
   };
 
